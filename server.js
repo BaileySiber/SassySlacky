@@ -2,8 +2,14 @@ const { RTMClient, WebClient } = require('@slack/client');
 const { createMessageAdapter } = require('@slack/interactive-messages');
 const slackInteractions = createMessageAdapter(process.env.SLACKBOT_USER_TOKEN)
 const express = require('express');
+const { User, Reminder, Meeting, Invite } = require('./models.js')
+const googleAuth = require("./googleAuth")
 
 const app = express();
+// module with logic for dealing with HTTP requests
+const http = require('http');
+// define port used for ngrok
+const PORT=7707;
 
 // app.use('/actions', slackInteractions.expressMiddleware());
 // Get an API token by creating an app at <https://api.slack.com/apps?new_app=1>
@@ -45,6 +51,30 @@ rtm.on('message', (event) => {
     return
   }
 
+  var slackId = event.user;
+  User.findOne({slackId: slackId})
+  .then(user => {
+    if(!user) {
+      console.log('new user!!!')
+      var newUser = new User({slackId: slackId})
+      newUser.save()
+      .then(saved => {
+        web.chat.postMessage({
+          "channel": event.channel,
+          "text": "You are a new user, please log in to Google:" + process.env.DOMAIN + "/auth?auth_id=" + saved._id
+        })
+      })
+    }
+    else if(!user.googleTokens || foundUser.googleTokens.expiry_date < Date.now() ) {
+      console.log('tokens do not exist or have expired!!!')
+      web.chat.postMessage({
+        "channel": event.channel,
+        "text": "Google token is expired, try again:" + process.env.DOMAIN + "/auth?auth_id=" + user._id
+      })
+    }
+  })
+  .catch(err => console.log("error", err))
+
 
   const request = {
     session: sessionPath,
@@ -63,8 +93,6 @@ rtm.on('message', (event) => {
     //rtm.sendMessage('Detected intent', event.channel);
     const result = responses[0].queryResult;
     var readable = JSON.stringify(result.intent)
-    console.log("Logging intent -------> "+readable)
-    console.log(result.intent.displayName)
     //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
     rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
     if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
@@ -138,11 +166,6 @@ rtm.on('reaction_removed', (event) => {
 
 // Send a message once the connection is ready
 rtm.on('ready', (event) => {
-
-  // web.chat.postMessage({
-  //      "channel": event.channel,
-  //      "text": "You need to log in to Google!: " + DOMAIN + "/auth?auth_id=" +
-  //    )}
   // Getting a conversation ID is left as an exercise for the reader. It's usually available as the `channel` property
   // on incoming messages, or in responses to Web API requests.
 
@@ -155,24 +178,42 @@ rtm.on('ready', (event) => {
 
 //Google stuff
 //gives permission to access Google Calendar
-app.get('/link', (req, res) => {
+app.get('/auth', (req, res) => {
   if(!req.query.auth_id) {return res.send('no id found!')}
   var link = googleAuth.generateAuthUrl(req.query.auth_id)
   res.redirect(link)
 })
 
+
+//state = slackId
+
+
 //if user is logged in with Google...
-// app.post('/google/callback', (req, res) => {
-//   if(!req.query.code) {return res.send('no token found!')}
-//   googleAuth.getToken(req.query.code)
-//   .then(tokens => {
-//     var temp = JSON.parse(decodeURIComponent(req.query.state))
-//     var userId = temp.auth_id
-//     return User.findByIdAndUpdate(userId, {googleTokens: tokens}).exec()
-//   })
-//   .then(updated => {
-//     if(!updated) {return res.send('issue with finding user i think')}
-//     res.send('you are all set with Google!!!')
-//   })
-//   .catch(err => console.log("error", error))
-// })
+app.get('/oauthcallback', (req, res) => {
+  console.log('req.query is ----------->' + req.query)
+  if(!req.query.code) {return res.send('no token found!')}
+  googleAuth.getToken(req.query.code)
+  .then(tokens => {
+    var temp = JSON.parse(decodeURIComponent(req.query.state))
+    var userId = temp.auth_id
+    return User.findByIdAndUpdate(userId, {googleTokens: tokens})
+  })
+  .then(updated => {
+    if(!updated) {return res.send('issue with finding user i think')}
+    res.send('you are all set with Google!!!')
+  })
+  .catch(err => console.log("error", error))
+})
+
+// request handler function, sends a simple response
+function handleRequest(req, res) {
+  res.end('Ngrok is working! - Path Hit: '+ req.url);
+}
+
+// create web server object calling createServer function
+const server = http.createServer(app);
+// start the server
+server.listen(PORT, function(){
+  // callback when server is successfully listening
+  console.log("Server listening on http://localhost:%s", PORT);
+});

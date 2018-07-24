@@ -9,7 +9,7 @@ const redirect = process.env.REDIRECT_URL || '';
 
 if (!clientId) { console.log('You must specify a client ID to use this example'); process.exitCode = 1; throw 1; }
 if (!clientSecret) { console.log('You must specify a client secret to use this example'); process.exitCode = 1; throw 1; }
-if (!redirect) { throw new Error( 'redirect domain not found' ); process.exit(1); return; }
+if (!redirect) { throw new Error( 'redirect domain not found' ); process.exit(1); throw 1; }
 
 const oauth2Client = new OAuth2(
   clientId, clientSecret, redirect
@@ -20,7 +20,7 @@ const scopes = [
   'https://www.googleapis.com/auth/calendar'
 ];
 
-generateAuthUrl(auth_id) {
+function generateAuthUrl(auth_id) {
   var authObj = {
     access_type: 'offline',
     scope: scopes
@@ -28,11 +28,11 @@ generateAuthUrl(auth_id) {
   if(auth_id) {
     authObj.state = encodeURIComponent(JSON.stringify({auth_id: auth_id}))
   }
-  return oAuth2Client.generateAuthURL(authObj)
+  return oauth2Client.generateAuthUrl(authObj)
 }
 
 
-getToken(code) {
+function getToken(code) {
   return new Promise(function(resolve, reject) {
     oauth2Client.getToken(code, function(error, tokens) {
       if(error) {reject(error); return; }
@@ -42,10 +42,10 @@ getToken(code) {
 }
 
 
-createReminder(tokens, title, dateTime) {
+function createReminder(tokens, title, dateTime) {
   oauth2Client.setCredentials(tokens);
   return new Promise(function(resolve, reject) {
-    calendar.events.insert({
+    cal.events.insert({
       auth: oauth2Client,
       calendarId: 'primary',
       resource: {
@@ -60,10 +60,10 @@ createReminder(tokens, title, dateTime) {
   });
 }
 
-createMeeting(tokens, title, start, end, invitees) {
-  oAuth2Client.setCredentials(tokens);
+function createMeeting(tokens, title, start, end, invitees) {
+  oauth2Client.setCredentials(tokens);
   return new Promise(function(resolve, reject) {
-    calendar.events.insert({
+    cal.events.insert({
       auth: oauth2Client,
       calendarId: 'primary',
       resource: {
@@ -77,3 +77,11 @@ createMeeting(tokens, title, start, end, invitees) {
     });
   });
 }
+
+
+module.exports=({
+  generateAuthUrl,
+  getToken,
+  createReminder,
+  createMeeting
+})
