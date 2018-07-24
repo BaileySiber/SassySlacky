@@ -11,7 +11,7 @@ mongoose.connect(process.env.MONGODB_URI)
 mongoose.Promise = global.Promise
 
 
-/**googletokens
+/*googletokens
 accessToken: String,
 idToken: String,
 refreshToken: String,
@@ -19,18 +19,28 @@ tokenType: String,
 expiration: Date
 */
 
+/*status
+intent: String,
+subject: String,
+time: String,
+date: Date
+*/
+
 var UserSchema = Schema({
- googleTokens:{
-   type: Mixed,
- },
- defaultMeetingLength: {
-   type: Number,
-   default: 30,
- },
- slackId: String,
- slackUsername: String,
- slackEmail: String,
- slackDmIds: Array
+  googleTokens:{
+    type: Mixed,
+  },
+  defaultMeetingLength: {
+    type: Number,
+    default: 30,
+  },
+  slackId: String,
+  slackUsername: String,
+  slackEmail: String,
+  slackDmIds: Array,
+  status: {
+    type: Mixed,
+  }
 })
 
 var ReminderSchema = Schema({
@@ -46,10 +56,48 @@ var ReminderSchema = Schema({
   slackId: String,
 })
 
+var MeetingSchema = Schema({
+  start: {
+    type: Date,
+    required: true,
+  },
+  end: {
+    type: Date,
+    required: true,
+  },
+  invitees: {
+    type: Array,
+    required: true,
+  },
+  subject: String,
+  location: String,
+  calFields: Object,
+  status: String,
+  createdAt: Date,
+  requesterId: String
+})
+
+var InviteSchema = Schema({
+  eventId: String,
+  inviteeId: {
+    type: ObjectId,
+    ref: 'User',
+  },
+  requesterId: {
+    type: ObjectId,
+    ref: 'User',
+  },
+  status: String
+})
+
 var Reminder = mongoose.model('Reminder', ReminderSchema)
 var User = mongoose.model('User', UserSchema)
+var Meeting = mongoose.model('Meeting', MeetingSchema)
+var Invite = mongoose.model('Invite', InviteSchema)
 
 module.exports = {
   Reminder: Reminder,
-  User: User
+  User: User,
+  Meeting: Meeting,
+  Invite: Invite
 }
