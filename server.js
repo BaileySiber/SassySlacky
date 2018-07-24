@@ -3,9 +3,13 @@ const { createMessageAdapter } = require('@slack/interactive-messages');
 const slackInteractions = createMessageAdapter(process.env.SLACKBOT_USER_TOKEN)
 const express = require('express');
 const { User, Reminder, Meeting, Invite } = require('./models.js')
-const googleAuth = require("./googleAuth")
+const googleAuth = require("./googleAuth");
+const bodyParser = require('body-parser');
 
 const app = express();
+app.use(bodyParser.urlencoded({extended: false}))
+// create app/json parser
+app.use(bodyParser.json())
 // module with logic for dealing with HTTP requests
 // const http = require('http');
 // define port used for ngrok
@@ -38,16 +42,11 @@ const sessionPath = sessionClient.sessionPath(projectId, sessionId);
 // The text query request.
 
 // button actions route
-app.post('/actions', (req, res) => {
-  let stringified = JSON.stringify(req)
-  console.log(stringified, "AHHHH YOU CLICKED Confirm");
-  res.send(req);
-})
 
 // Log all incoming messages
 rtm.on('message', (event) => {
   console.log(event)
-  if(event.bot_id){
+  if (event.subtype) {
     return
   }
 
@@ -65,7 +64,7 @@ rtm.on('message', (event) => {
         })
       })
     }
-    else if(!user.googleTokens || foundUser.googleTokens.expiry_date < Date.now() ) {
+    else if(!user.googleTokens || user.googleTokens.expiry_date < Date.now() ) {
       console.log('tokens do not exist or have expired!!!')
       web.chat.postMessage({
         "channel": event.channel,
@@ -74,88 +73,89 @@ rtm.on('message', (event) => {
     }
     else {
       console.log('user can give make requests yay!')
+      const request = {
+        session: sessionPath,
+        queryInput: {
+          text: {
+            text: event.text,
+            languageCode: languageCode,
+          },
+        },
+      };
+
+      // Send request and log result
+      sessionClient
+      .detectIntent(request)
+      .then(responses => {
+        //rtm.sendMessage('Detected intent', event.channel);
+        const result = responses[0].queryResult;
+
+        User.findOne({slackId: slackId})
+        .then(found => {
+          if(!found) {return console.log('user not found')}
+          found.temp = new Object({
+            date: result.date,
+            time: result.time,
+            task: result.task,
+          })
+        })
+        .catch(err => console.log("error!!!!" + err))
+
+        //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
+        rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
+        if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
+          //result.fulfillmentText.includes("set")
+          // console.log(`  Intent: ${result.intent.displayName}`);
+
+          web.chat.postMessage({
+            channel: event.channel,
+            "text": "Please confirm.",
+            "attachments": [
+              {
+                // "text": `Remind you $subject on $day`,
+                "fallback": "I didn't get your reminder request. Try again.",
+                // "callback_id": "wopr_game",
+                "color": "#3AA3E3",
+                "attachment_type": "default",
+                "actions": [
+                  {
+                    "name": "select",
+                    "text": "Confirm",
+                    "type": "button",
+                    "value": "confirm",
+                    "style": "primary"
+                  },
+                  {
+                    "name": "select",
+                    "text": "Cancel",
+                    "style": "danger",
+                    "type": "button",
+                    "value": "cancel",
+                    "confirm": {
+                      "title": "Are you sure?",
+                      "ok_text": "Yes",
+                      "dismiss_text": "No"
+                    }
+                  }
+                ]
+              }
+            ]
+          })
+
+
+        } else {
+          console.log(`  No intent matched.`);
+        }
+      })
+      .catch(err => {
+        console.error('ERROR:', err);
+      });
     }
   })
   .catch(err => console.log("error", err))
 
 
-  const request = {
-    session: sessionPath,
-    queryInput: {
-      text: {
-        text: event.text,
-        languageCode: languageCode,
-      },
-    },
-  };
 
-  // Send request and log result
-  sessionClient
-  .detectIntent(request)
-  .then(responses => {
-    //rtm.sendMessage('Detected intent', event.channel);
-    const result = responses[0].queryResult;
-
-    User.findOne({slackId: slackId})
-    .then(found => {
-      if(!found) {return console.log('user not found')}
-      found.temp = new Object({
-        date: result.date,
-        time: result.time,
-        task: result.task,
-      })
-    })
-    .catch(err => console.log("error!!!!" + err))
-
-    //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
-    rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
-    if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
-      //result.fulfillmentText.includes("set")
-      // console.log(`  Intent: ${result.intent.displayName}`);
-
-      web.chat.postMessage({
-        channel: event.channel,
-        "text": "Please confirm.",
-        "attachments": [
-          {
-            // "text": `Remind you $subject on $day`,
-            "fallback": "I didn't get your reminder request. Try again.",
-            // "callback_id": "wopr_game",
-            "color": "#3AA3E3",
-            "attachment_type": "default",
-            "actions": [
-              {
-                "name": "userConfirmation",
-                "text": "Confirm",
-                "type": "button",
-                "value": "confirm",
-                "style": "primary"
-              },
-              {
-                "name": "userConfirmation",
-                "text": "Cancel",
-                "style": "danger",
-                "type": "button",
-                "value": "cancel",
-                "confirm": {
-                  "title": "Are you sure?",
-                  "ok_text": "Yes",
-                  "dismiss_text": "No"
-                }
-              }
-            ]
-          }
-        ]
-      })
-
-
-    } else {
-      console.log(`  No intent matched.`);
-    }
-  })
-  .catch(err => {
-    console.error('ERROR:', err);
-  });
 })
 
 // Structure of `event`: <https://api.slack.com/events/message>
@@ -245,6 +245,9 @@ app.post('/slack/action', (req, res) => {
     .then( () => {
       user.status = null;
       return user.save()
+    })
+    .then((user) => {
+      res.end()
     })
     .catch(err => console.log('error making reminder event and updating user', err))
   })
