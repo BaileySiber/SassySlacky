@@ -39,8 +39,8 @@ const sessionPath = sessionClient.sessionPath(projectId, sessionId);
 
 // button actions route
 app.post('/actions', (req, res) => {
-
-  console.log(req, "AHHHH YOU CLICKED Confirm");
+  let stringified = JSON.stringify(req)
+  console.log(stringified, "AHHHH YOU CLICKED Confirm");
   res.send(req);
 })
 
