@@ -12,7 +12,7 @@ if (!clientSecret) { console.log('You must specify a client secret to use this e
 if (!redirect) { throw new Error( 'redirect domain not found' ); process.exit(1); return; }
 
 const oauth2Client = new OAuth2(
-  clientId, clientSecret, redirect + '/google/callback'
+  clientId, clientSecret, redirect
 )
 
 const scopes = [
@@ -52,6 +52,24 @@ createReminder(tokens, title, dateTime) {
         summary: title,
         start: {dateTime: dateTime},
         end: {dateTime: dateTime}
+      }
+    }, function(calErr, calResp) {
+      if(calErr) {reject(calErr); return}
+      resolve(calResp);
+    });
+  });
+}
+
+createMeeting(tokens, title, start, end, invitees) {
+  oAuth2Client.setCredentials(tokens);
+  return new Promise(function(resolve, reject) {
+    calendar.events.insert({
+      auth: oauth2Client,
+      calendarId: 'primary',
+      resource: {
+        summary: title,
+        start: {dateTime: start},
+        end: {dateTime: end}
       }
     }, function(calErr, calResp) {
       if(calErr) {reject(calErr); return}
