@@ -16,7 +16,7 @@ accessToken: String,
 idToken: String,
 refreshToken: String,
 tokenType: String,
-expiration: Date
+expiry_date: Date
 */
 
 /*status

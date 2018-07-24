@@ -1,10 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
-// module with logic for dealing with HTTP requests
-const http = require('http');
-// define port used for ngrok
-const PORT=7707;
+
 
 // If modifying these scopes, delete credentials.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
@@ -23,10 +20,7 @@ fs.readFile('credentials.json', (err, content) => {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-// request handler function, sends a simple response
-function handleRequest(req, res) {
-  res.end('Ngrok is working! - Path Hit: '+ req.url);
-}
+
 
 function authorize(credentials, callback) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
@@ -98,11 +92,3 @@ function listEvents(auth) {
     }
   });
 }
-
-// create web server object calling createServer function
-const server = http.createServer(handleRequest);
-// start the server
-server.listen(PORT, function(){
-  // callback when server is successfully listening
-  console.log("Server listening on http://localhost:%s", PORT);
-});
