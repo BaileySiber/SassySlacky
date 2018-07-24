@@ -59,7 +59,7 @@ rtm.on('message', (event) => {
       console.log(responses)
       //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
       rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
-      if (result.intent) {
+      if (result.intent === "remind:add") {
         console.log(`  Intent: ${result.intent.displayName}`);
         web.chat.postMessage({
           channel: event.channel,
