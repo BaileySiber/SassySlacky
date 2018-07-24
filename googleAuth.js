@@ -42,7 +42,7 @@ function getToken(code) {
 }
 
 
-function createReminder(tokens, title, dateTime) {
+function createReminder(tokens, title, date) {
   oauth2Client.setCredentials(tokens);
   return new Promise(function(resolve, reject) {
     cal.events.insert({
@@ -50,8 +50,8 @@ function createReminder(tokens, title, dateTime) {
       calendarId: 'primary',
       resource: {
         summary: title,
-        start: {dateTime: dateTime},
-        end: {dateTime: dateTime}
+        start: {date: date},
+        end: {date: date}
       }
     }, function(calErr, calResp) {
       if(calErr) {reject(calErr); return}

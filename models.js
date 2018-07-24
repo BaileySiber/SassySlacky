@@ -40,6 +40,9 @@ var UserSchema = Schema({
   slackDmIds: Array,
   status: {
     type: Mixed,
+  },
+  temp: {
+    type: Mixed
   }
 })
 

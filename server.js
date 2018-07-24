@@ -7,7 +7,7 @@ const googleAuth = require("./googleAuth")
 
 const app = express();
 // module with logic for dealing with HTTP requests
-const http = require('http');
+// const http = require('http');
 // define port used for ngrok
 const PORT=7707;
 
@@ -39,9 +39,9 @@ const sessionPath = sessionClient.sessionPath(projectId, sessionId);
 
 // button actions route
 app.post('/actions', (req, res) => {
-  console.log(req, "AHHHH");
-  res.send('ahhh');
 
+  console.log(req, "AHHHH YOU CLICKED Confirm");
+  res.send(req);
 })
 
 // Log all incoming messages
@@ -72,6 +72,9 @@ rtm.on('message', (event) => {
         "text": "Google token is expired, try again:" + process.env.DOMAIN + "/auth?auth_id=" + user._id
       })
     }
+    else {
+      console.log('user can give make requests yay!')
+    }
   })
   .catch(err => console.log("error", err))
 
@@ -92,7 +95,18 @@ rtm.on('message', (event) => {
   .then(responses => {
     //rtm.sendMessage('Detected intent', event.channel);
     const result = responses[0].queryResult;
-    var readable = JSON.stringify(result.intent)
+
+    User.findOne({slackId: slackId})
+    .then(found => {
+      if(!found) {return console.log('user not found')}
+      found.temp = new Object({
+        date: result.date,
+        time: result.time,
+        task: result.task,
+      })
+    })
+    .catch(err => console.log("error!!!!" + err))
+
     //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
     rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
     if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
@@ -205,15 +219,51 @@ app.get('/oauthcallback', (req, res) => {
   .catch(err => console.log("error", error))
 })
 
+
+//when user clicks "Confirm" or "Cancel" to interactive message
+app.post('/slack/action', (req, res) => {
+  var payload = JSON.parse(req.body.payload);
+  var slackId = String(payload.user.id)
+  var selection = payload.actions[0].value;
+  var user;
+
+  if(selection !== "confirm"){
+    User.findOneAndUpdate({slackId: slackId}, {status: null})
+    .then(() => res.send('Request has been cancelled!'))
+    .catch(err => console.log("error cancelling request", err))
+    return;
+  }
+
+  User.findOne({slackId: slackId}, (err, found) => {
+    if(err) {return res.send('error finding user', err)}
+    if(!found) {return res.send('user not found merp')}
+    user = found;
+    let title = user.temp.task;
+    let date = user.temp.date;
+    let tokens = user.googleTokens
+    googleAuth.createReminder(tokens, title, date)
+    .then( () => {
+      user.status = null;
+      return user.save()
+    })
+    .catch(err => console.log('error making reminder event and updating user', err))
+  })
+});
+
+
+
+
+
+
 // request handler function, sends a simple response
 function handleRequest(req, res) {
   res.end('Ngrok is working! - Path Hit: '+ req.url);
 }
 
 // create web server object calling createServer function
-const server = http.createServer(app);
+// const server = http.createServer(app);
 // start the server
-server.listen(PORT, function(){
+app.listen(PORT, function(){
   // callback when server is successfully listening
   console.log("Server listening on http://localhost:%s", PORT);
 });
