@@ -150,7 +150,7 @@ rtm.on('message', (event) => {
   })
 
   //if user is logged in with Google...
-  app.get('/connected', (req, res) => {
+  app.get('/google/callback', (req, res) => {
     if(!req.query.code) {return res.send('no token found!')}
     googleAuth.getToken(req.query.code)
     .catch(err => console.log("error", error))
