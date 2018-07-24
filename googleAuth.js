@@ -12,7 +12,7 @@ if (!clientSecret) { console.log('You must specify a client secret to use this e
 if (!redirect) { throw new Error( 'redirect domain not found' ); process.exit(1); return; }
 
 const oauth2Client = new OAuth2(
-  clientId, clientSecret, redirect
+  clientId, clientSecret, redirect + '/google/callback'
 )
 
 const scopes = [
