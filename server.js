@@ -46,14 +46,15 @@ const sessionPath = sessionClient.sessionPath(projectId, sessionId);
 // Log all incoming messages
 rtm.on('message', (event) => {
   console.log(event)
-  if (event.subtype) {
+  if (event.bot_id || event.subtype || event.user === 'UBWEG21RD') {
+    console.log('returning out yikes!')
     return
   }
 
   var slackId = event.user;
   User.findOne({slackId: slackId})
   .then(user => {
-    if(!user) {
+    if(!user && !event.bot_id) {
       console.log('new user!!!')
       var newUser = new User({slackId: slackId})
       newUser.save()
@@ -64,7 +65,7 @@ rtm.on('message', (event) => {
         })
       })
     }
-    else if(!user.googleTokens || user.googleTokens.expiry_date < Date.now() ) {
+    else if(!user.googleTokens || user.googleTokens.expiry_date < Date.now()) {
       console.log('tokens do not exist or have expired!!!')
       web.chat.postMessage({
         "channel": event.channel,
@@ -90,16 +91,34 @@ rtm.on('message', (event) => {
         //rtm.sendMessage('Detected intent', event.channel);
         const result = responses[0].queryResult;
 
-        User.findOne({slackId: slackId})
-        .then(found => {
-          if(!found) {return console.log('user not found')}
-          found.temp = new Object({
-            date: result.date,
-            time: result.time,
-            task: result.task,
+        if (result.intent.displayName === "remind:add") {
+          User.findOne({slackId: slackId})
+          .then(found => {
+            if(!found) {return console.log('user not found')}
+            found.temp = new Object({
+              date: result.date,
+              time: result.time,
+              task: result.task,
+              intent: result.intent.displayName
+            })
           })
-        })
-        .catch(err => console.log("error!!!!" + err))
+          .catch(err => console.log("error!!!!" + err))
+        }
+
+        if (result.intent.displayName === "meeting:add") {
+          User.findOne({slackId: slackId})
+          .then(found => {
+            if(!found) {return console.log('user not found')}
+            found.temp = new Object({
+              end: result.end,
+              start: result.start,
+              task: result.task,
+              invitees: result.invitees,
+              intent: result.intent.displayName
+            })
+          })
+          .catch(err => console.log("error!!!!" + err))
+        }
 
         //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
         rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
@@ -238,18 +257,42 @@ app.post('/slack/action', (req, res) => {
     if(err) {return res.send('error finding user', err)}
     if(!found) {return res.send('user not found merp')}
     user = found;
-    let title = user.temp.task;
-    let date = user.temp.date;
-    let tokens = user.googleTokens
-    googleAuth.createReminder(tokens, title, date)
-    .then( () => {
-      user.status = null;
-      return user.save()
-    })
-    .then((user) => {
-      res.end()
-    })
-    .catch(err => console.log('error making reminder event and updating user', err))
+
+    if (user.temp.intent === "remind:add") {
+      let title = user.temp.task;
+      let date = user.temp.date;
+      let tokens = user.googleTokens;
+      googleAuth.createReminder(tokens, title, date)
+      .then( () => {
+        user.status = null;
+        console.log('reminder successfully created!!!')
+        return user.save()
+      })
+      .then((user) => {
+        res.end()
+      })
+      .catch(err => console.log('error making reminder event and updating user', err))
+    }
+
+    if (user.temp.intent === "meeting:add") {
+      let title = user.temp.task;
+      let start = user.temp.start;
+      let end = user.temp.end;
+      let invitees = user.temp.invitees;
+      let tokens = user.googleTokens;
+      googleAuth.createMeeting(tokens, title, start, end, invitees)
+      .then ( () => {
+        user.status = null;
+        console.log("meectinrge successfully created!!!")
+        return user.save()
+      })
+      .then((user) => {
+        res.end()
+      })
+      .catch(err => console.log('error making meeting event and updating user', err))
+    }
+
+
   })
 });
 
