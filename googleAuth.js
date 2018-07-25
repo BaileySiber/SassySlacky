@@ -60,16 +60,18 @@ function createReminder(tokens, title, date) {
   });
 }
 
-function createMeeting(tokens, title, start, end, invitees) {
+function createMeeting(tokens, startDateTime, invitees) {
+  console.log('startDateTime is ----------->' + startDateTime)
+  console.log('invitees is ----------->' + invitees)
   oauth2Client.setCredentials(tokens);
   return new Promise(function(resolve, reject) {
     cal.events.insert({
       auth: oauth2Client,
       calendarId: 'primary',
       resource: {
-        summary: title,
-        start: {dateTime: start},
-        end: {dateTime: end}
+        summary: invitees,
+        start: {dateTime: startDateTime},
+        end: {dateTime: startDateTime}
       }
     }, function(calErr, calResp) {
       if(calErr) {reject(calErr); return}

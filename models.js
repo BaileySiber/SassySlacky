@@ -42,7 +42,7 @@ var UserSchema = Schema({
     type: Mixed,
   },
   temp: {
-    type: Mixed
+    type: Object,
   }
 })
 
@@ -60,11 +60,11 @@ var ReminderSchema = Schema({
 })
 
 var MeetingSchema = Schema({
-  start: {
-    type: Date,
-    required: true,
-  },
   end: {
+    type: Date,
+    required: false,
+  },
+  start: {
     type: Date,
     required: true,
   },

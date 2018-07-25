@@ -91,37 +91,63 @@ rtm.on('message', (event) => {
         //rtm.sendMessage('Detected intent', event.channel);
         const result = responses[0].queryResult;
 
+        console.log("result.intent.displayName is ->>>>>>>>>>>>>>>>>" + result.intent.displayName)
+
         if (result.intent.displayName === "remind:add") {
+          // console.log("date is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.date.stringValue.slice(0,10)))
+          // console.log("time is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.time.stringValue))
+          // console.log("task is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.task.stringValue))
+          // console.log("intent is ->>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.intent.displayName))
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
-            found.temp = new Object({
-              date: result.date,
-              time: result.time,
-              task: result.task,
-              intent: result.intent.displayName
-            })
+            found.temp = {
+              date: result.parameters.fields.date.stringValue.slice(0,10),
+              // time: result.parameters.fields.time.stringValue.slice(11,18),
+              task: result.parameters.fields.task.stringValue,
+              intent: 'remind:add'
+            }
+            return found.save()
+          })
+          .then(() => {
+            console.log('yay found was updated with temp!!!!!')
           })
           .catch(err => console.log("error!!!!" + err))
         }
 
         if (result.intent.displayName === "meeting:add") {
+          //  console.log("result is ------------------> " + JSON.stringify(result))
+          // console.log("date is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.startDate))
+          // console.log("invitees are ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.invitees))
+          // console.log("intent is ->>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.intent.displayName))
+          console.log("STARTDATE_____________________________>" + result.parameters.fields.startDate.stringValue.slice(0,10))
+          console.log("STARTTIME_____________________________>" + result.parameters.fields.startDate.stringValue.slice(11,19))
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
-            found.temp = new Object({
-              end: result.end,
-              start: result.start,
-              task: result.task,
-              invitees: result.invitees,
-              intent: result.intent.displayName
+            var mapInvitee = []
+            result.parameters.fields.invitees.listValue.values.map((invitee) => {
+              mapInvitee.push(invitee.stringValue)
             })
+            found.temp = {
+              startDate: result.parameters.fields.startDate.stringValue.slice(0,10),
+              startTime: result.parameters.fields.startTime.stringValue.slice(11,19),
+              invitees: mapInvitee,
+              intent: 'meeting:add'
+            }
+
+            return found.save()
+          })
+          .then(() => {
+            console.log("yay found was updated with temp!!! wooooo!!!")
           })
           .catch(err => console.log("error!!!!" + err))
         }
 
         //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
         rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
+
+
         if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
           //result.fulfillmentText.includes("set")
           // console.log(`  Intent: ${result.intent.displayName}`);
@@ -161,10 +187,47 @@ rtm.on('message', (event) => {
               }
             ]
           })
+        }
 
-
-        } else {
-          console.log(`  No intent matched.`);
+        if (result.intent.displayName === "meeting:add" && result.allRequiredParamsPresent === true){
+          web.chat.postMessage({
+            "channel": event.channel,
+            "text": "Please confirm.",
+            "attachments": [
+              {
+                // "text": `Remind you $subject on $day`,
+                "fallback": "I didn't get your meeting request. Try again.",
+                "callback_id": "meetingSetting",
+                "color": "#3AA3E3",
+                "attachment_type": "default",
+                "type": "interactive-message",
+                "actions": [
+                  {
+                    "name": "confirm",
+                    "text": "Confirm",
+                    "type": "button",
+                    "value": "confirm",
+                    "style": "primary"
+                  },
+                  {
+                    "name": "cancel",
+                    "text": "Cancel",
+                    "style": "danger",
+                    "type": "button",
+                    "value": "cancel",
+                    "confirm": {
+                      "title": "Are you sure?",
+                      "ok_text": "Yes",
+                      "dismiss_text": "No"
+                    }
+                  }
+                ]
+              }
+            ]
+          })
+        }
+        else {
+          console.log('No intent matched :( sad)')
         }
       })
       .catch(err => {
@@ -250,9 +313,6 @@ app.get('slack/action', (req, res) => {
 app.post('/slack/action', (req, res) => {
 
   console.log('post route hit');
-  res.status(200).send('success');
-  return;
-
 
   var payload = JSON.parse(req.body.payload);
   console.log('payload is ---------> ', payload)
@@ -272,6 +332,8 @@ app.post('/slack/action', (req, res) => {
     if(!found) {return res.send('user not found merp')}
     user = found;
 
+    console.log('!!!!!!! user temp is --------------------->' + user.temp.intent)
+
     if (user.temp.intent === "remind:add") {
       let title = user.temp.task;
       let date = user.temp.date;
@@ -279,6 +341,7 @@ app.post('/slack/action', (req, res) => {
       googleAuth.createReminder(tokens, title, date)
       .then( () => {
         user.status = null;
+        user.temp.intent = null;
         console.log('reminder successfully created!!!')
         return user.save()
       })
@@ -289,15 +352,18 @@ app.post('/slack/action', (req, res) => {
     }
 
     if (user.temp.intent === "meeting:add") {
-      let title = user.temp.task;
-      let start = user.temp.start;
-      let end = user.temp.end;
+      let date = user.temp.startDate;
+      let time = user.temp.startTime;
+      let startDateTime = new Date( date + 'T' + time );
+      console.log('date ugh --------------> ' + date + time + startDateTime)
+      // var endDateTime = ( endTime ? new Date( date + 'T' + endTime ) : new Date( startDateTime.getTime() + 1000*60*foundUser.defaultMeetingLength ) );
       let invitees = user.temp.invitees;
       let tokens = user.googleTokens;
-      googleAuth.createMeeting(tokens, title, start, end, invitees)
+      googleAuth.createMeeting(tokens, startDateTime, invitees)
       .then ( () => {
         user.status = null;
-        console.log("meectinrge successfully created!!!")
+        user.temp.intent = null;
+        console.log("meeting successfully created!!!")
         return user.save()
       })
       .then((user) => {
