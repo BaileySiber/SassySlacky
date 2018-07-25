@@ -127,25 +127,26 @@ rtm.on('message', (event) => {
           // console.log(`  Intent: ${result.intent.displayName}`);
 
           web.chat.postMessage({
-            channel: event.channel,
+            "channel": event.channel,
             "text": "Please confirm.",
             "attachments": [
               {
                 // "text": `Remind you $subject on $day`,
                 "fallback": "I didn't get your reminder request. Try again.",
-                // "callback_id": "wopr_game",
+                "callback_id": "reminderSetting",
                 "color": "#3AA3E3",
                 "attachment_type": "default",
+                "type": "interactive-message",
                 "actions": [
                   {
-                    "name": "select",
+                    "name": "confirm",
                     "text": "Confirm",
                     "type": "button",
                     "value": "confirm",
                     "style": "primary"
                   },
                   {
-                    "name": "select",
+                    "name": "cancel",
                     "text": "Cancel",
                     "style": "danger",
                     "type": "button",
@@ -240,8 +241,21 @@ app.get('/oauthcallback', (req, res) => {
 
 
 //when user clicks "Confirm" or "Cancel" to interactive message
+app.get('slack/action', (req, res) => {
+  console.log('get route hit');
+  res.status(200).send('success');
+})
+
+
 app.post('/slack/action', (req, res) => {
+
+  console.log('post route hit');
+  res.status(200).send('success');
+  return;
+
+
   var payload = JSON.parse(req.body.payload);
+  console.log('payload is ---------> ', payload)
   var slackId = String(payload.user.id)
   var selection = payload.actions[0].value;
   var user;
