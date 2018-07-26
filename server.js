@@ -98,7 +98,6 @@ rtm.on('message', (event) => {
           // console.log("time is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.time.stringValue))
           // console.log("task is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.task.stringValue))
           // console.log("intent is ->>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.intent.displayName))
-          console.log('agweiawguiawg -------------------------------------------------------------------->' + result.parameters.fields.invitees.listValue.values )
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
@@ -118,6 +117,8 @@ rtm.on('message', (event) => {
 
         if (result.intent.displayName === "meeting:add") {
           //  console.log("result is ------------------> " + JSON.stringify(result))
+
+          console.log('agweiawguiawg -------------------------------------------------------------------->' + result.parameters.fields.invitees.listValue.values)
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
