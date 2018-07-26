@@ -118,7 +118,7 @@ rtm.on('message', (event) => {
         if (result.intent.displayName === "meeting:add") {
            var stringifiedResult = JSON.stringify(result);
 
-          console.log('agweiawguiawg -------------------------------------------------------------------->' + stringifiedResult.outputContexts[2].parameters.fields.queryText.slice(2,10))
+          console.log('agweiawguiawg -------------------------------------------------------------------->' + stringifiedResult.queryText.slice(2,10))
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
