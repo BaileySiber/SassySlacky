@@ -130,11 +130,11 @@ rtm.on('message', (event) => {
             console.log("mapInvitee is ----------------------------->" + mapInvitee)
 
             // check for time conflicts
-            let originalStartDate = result.parameters.fields.startDate.stringValue.slice(0,10);
-            let originalStartTime = result.parameters.fields.startTime.stringValue.slice(11,19)
+            let startDate = result.parameters.fields.startDate.stringValue.slice(0,10);
+            let startTime = result.parameters.fields.startTime.stringValue.slice(11,19)
             let startDateTime = new Date( startDate + 'T' + startTime );
-            console.log("STARTDATE --------------> " + originalStartDate)
-            console.log("START TIME --------------> " + originalStartTime)
+            console.log("STARTDATE --------------> " + startDate)
+            console.log("START TIME --------------> " + startTime)
             // let minDateTime =
             // let maxDateTime =
             // access all attendees calendars separately using their tokens and calendarId: 'primary',
@@ -144,18 +144,18 @@ rtm.on('message', (event) => {
             // send a bot message with a dropdown menu attachment
             // take user selection and reset the startDateTime to selection
             // proceed!!
-            //here??
+            //here??   
             app.post("https://www.googleapis.com/calendar/v3/freeBusy", (req,res) => {
               console.log("getting the freebusy status!")
-              {
-                  "timeMin": startDateTime - a few days,
-                  "timeMax": startdatetime + a few days,
-                  "items": [
-                              {
-                                "id": string
-                              }
-                          ]
-              }
+              // {
+              //     "timeMin": startDateTime - a few days,
+              //     "timeMax": startdatetime + a few days,
+              //     "items": [
+              //                 {
+              //                   "id": string
+              //                 }
+              //             ]
+              // }
             })
 
             found.temp = {
