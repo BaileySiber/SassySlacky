@@ -106,7 +106,7 @@ rtm.on('message', (event) => {
             return found.save()
           })
           .then(() => {
-            console.log('yay found was updated with temp!!!!!')
+            console.log('yay found user was updated with temp!!!!!')
             //remind
           })
           .catch(err => console.log("error!!!!" + err))
@@ -128,9 +128,38 @@ rtm.on('message', (event) => {
               }
             })
             console.log("mapInvitee is ----------------------------->" + mapInvitee)
+
+            // check for time conflicts
+            let originalStartDate = result.parameters.fields.startDate.stringValue.slice(0,10);
+            let originalStartTime = result.parameters.fields.startTime.stringValue.slice(11,19)
+            let startDateTime = new Date( startDate + 'T' + startTime );
+            console.log("STARTDATE --------------> " + originalStartDate)
+            console.log("START TIME --------------> " + originalStartTime)
+            // let minDateTime =
+            // let maxDateTime =
+            // access all attendees calendars separately using their tokens and calendarId: 'primary',
+            // search for events at the startDateTime
+            // if none, return out of if statement
+            // if there is one, get 10 other times where all attendees are free
+            // send a bot message with a dropdown menu attachment
+            // take user selection and reset the startDateTime to selection
+            // proceed!!
+            //here??
+            app.post("https://www.googleapis.com/calendar/v3/freeBusy", (req,res) => {
+              console.log("getting the freebusy status!")
+              {
+                  "timeMin": startDateTime - a few days,
+                  "timeMax": startdatetime + a few days,
+                  "items": [
+                              {
+                                "id": string
+                              }
+                          ]
+              }
+            })
+
             found.temp = {
-              startDate: result.parameters.fields.startDate.stringValue.slice(0,10),
-              startTime: result.parameters.fields.startTime.stringValue.slice(11,19),
+              startDateTime: startDateTime,
               attendees: mapInvitee,
               intent: 'meeting:add'
             }
@@ -300,7 +329,6 @@ app.get('slack/action', (req, res) => {
   res.status(200).send('success');
 })
 
-
 app.post('/slack/action', (req, res) => {
 
   console.log('post route hit');
@@ -341,9 +369,7 @@ app.post('/slack/action', (req, res) => {
     }
 
     if (user.temp.intent === "meeting:add") {
-      let date = user.temp.startDate;
-      let time = user.temp.startTime;
-      let startDateTime = new Date( date + 'T' + time );
+      // startDateTime defined in line 135 and added to temp in line 149
       // var endDateTime = ( endTime ? new Date( date + 'T' + endTime ) : new Date( startDateTime.getTime() + 1000*60*foundUser.defaultMeetingLength ) );
       let attendees = user.temp.attendees;
       let promises = attendees.map(attendee => {
@@ -352,16 +378,16 @@ app.post('/slack/action', (req, res) => {
 
       Promise.all(promises)
       .then(function(users){
-        console.log('users is ---------->' + users)
+        // console.log('users is ---------->' + users)
         let userTokensArr = users.map(user => {
           return user.googleTokens
         })
         userTokensArr.push(user.googleTokens)
-        console.log("usertokensArr issssss ----------------------------______________>" + userTokensArr)
+        // console.log("usertokensArr issssss ----------------------------______________>" + userTokensArr)
         let schedulePromises =  userTokensArr.map(tokens => {
           return  googleAuth.createMeeting(tokens, startDateTime)
         })
-        console.log("schedulePromises is ---------------------------> " + schedulePromises)
+        // console.log("schedulePromises is ---------------------------> " + schedulePromises)
         return Promise.all(schedulePromises)
       })
       .then(() => res.send("yay we made a meeting!!!!!!!!!"))
