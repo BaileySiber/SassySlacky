@@ -94,10 +94,6 @@ rtm.on('message', (event) => {
         console.log("result.intent.displayName is ->>>>>>>>>>>>>>>>>" + result.intent.displayName)
 
         if (result.intent.displayName === "remind:add") {
-          // console.log("date is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.date.stringValue.slice(0,10)))
-          // console.log("time is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.time.stringValue))
-          // console.log("task is ->>>>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.parameters.fields.task.stringValue))
-          // console.log("intent is ->>>>>>>>>>>>>>>>>>>>>>>>>" + JSON.stringify(result.intent.displayName))
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
@@ -111,287 +107,283 @@ rtm.on('message', (event) => {
           })
           .then(() => {
             console.log('yay found was updated with temp!!!!!')
+            //remind
           })
           .catch(err => console.log("error!!!!" + err))
         }
 
         if (result.intent.displayName === "meeting:add") {
-           var stringifiedResult = JSON.stringify(result);
-
-          console.log('agweiawguiawg -------------------------------------------------------------------->' + stringifiedResult.queryText.slice(2,10))
+          var stringifiedResult = JSON.stringify(result);
+          console.log("GIMME THE RESULT ---------->"+stringifiedResult);
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
             var mapInvitee = []
-            result.parameters.fields.invitees.listValue.values.map((invitee) => {
-              mapInvitee.push(invitee.slackId)})
-              found.temp = {
-                startDate: result.parameters.fields.startDate.stringValue.slice(0,10),
-                startTime: result.parameters.fields.startTime.stringValue.slice(11,19),
-                attendees: mapInvitee,
-                intent: 'meeting:add'
+            result.parameters.fields.invitees.listValue.values.map(id => {
+              if (id.stringValue[0] === "<") {
+                mapInvitee.push(id.stringValue.slice(2,11))
               }
-
-              return found.save()
+              else {
+                mapInvitee.push(id)
+              }
             })
-            .then(() => {
-              console.log("yay found was updated with temp!!! wooooo!!!")
-            })
-            .catch(err => console.log("error!!!!" + err))
-          }
+            console.log("mapInvitee is ----------------------------->" + mapInvitee)
+            found.temp = {
+              startDate: result.parameters.fields.startDate.stringValue.slice(0,10),
+              startTime: result.parameters.fields.startTime.stringValue.slice(11,19),
+              attendees: mapInvitee,
+              intent: 'meeting:add'
+            }
+            return found.save()
+          })
+          .then(() => {
+            console.log("yay found was updated with temp!!! wooooo!!!")
+            //meeting
+          })
+          .catch(err => console.log("error!!!!" + err))
+        }
 
-          //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
-          rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
+        rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
+
+        //remind and meeting
 
 
-          if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
-            //result.fulfillmentText.includes("set")
-            // console.log(`  Intent: ${result.intent.displayName}`);
 
-            web.chat.postMessage({
-              "channel": event.channel,
-              "text": "Please confirm.",
-              "attachments": [
+      //rtm.sendMessage(`  Query: ${result.queryText}`, event.channel);
+
+      if (result.intent.displayName === "remind:add" && result.allRequiredParamsPresent === true) { //if result.allRequiredParamsPresent === true
+        //result.fulfillmentText.includes("set")
+
+        web.chat.postMessage({
+          "channel": event.channel,
+          "text": "Please confirm.",
+          "attachments": [
+            {
+              // "text": `Remind you $subject on $day`,
+              "fallback": "I didn't get your reminder request. Try again.",
+              "callback_id": "reminderSetting",
+              "color": "#3AA3E3",
+              "attachment_type": "default",
+              "type": "interactive-message",
+              "actions": [
                 {
-                  // "text": `Remind you $subject on $day`,
-                  "fallback": "I didn't get your reminder request. Try again.",
-                  "callback_id": "reminderSetting",
-                  "color": "#3AA3E3",
-                  "attachment_type": "default",
-                  "type": "interactive-message",
-                  "actions": [
-                    {
-                      "name": "confirm",
-                      "text": "Confirm",
-                      "type": "button",
-                      "value": "confirm",
-                      "style": "primary"
-                    },
-                    {
-                      "name": "cancel",
-                      "text": "Cancel",
-                      "style": "danger",
-                      "type": "button",
-                      "value": "cancel",
-                      "confirm": {
-                        "title": "Are you sure?",
-                        "ok_text": "Yes",
-                        "dismiss_text": "No"
-                      }
-                    }
-                  ]
+                  "name": "confirm",
+                  "text": "Confirm",
+                  "type": "button",
+                  "value": "confirm",
+                  "style": "primary"
+                },
+                {
+                  "name": "cancel",
+                  "text": "Cancel",
+                  "style": "danger",
+                  "type": "button",
+                  "value": "cancel",
+                  "confirm": {
+                    "title": "Are you sure?",
+                    "ok_text": "Yes",
+                    "dismiss_text": "No"
+                  }
                 }
               ]
-            })
-          }
-
-          if (result.intent.displayName === "meeting:add" && result.allRequiredParamsPresent === true){
-            web.chat.postMessage({
-              "channel": event.channel,
-              "text": "Please confirm.",
-              "attachments": [
-                {
-                  // "text": `Remind you $subject on $day`,
-                  "fallback": "I didn't get your meeting request. Try again.",
-                  "callback_id": "meetingSetting",
-                  "color": "#3AA3E3",
-                  "attachment_type": "default",
-                  "type": "interactive-message",
-                  "actions": [
-                    {
-                      "name": "confirm",
-                      "text": "Confirm",
-                      "type": "button",
-                      "value": "confirm",
-                      "style": "primary"
-                    },
-                    {
-                      "name": "cancel",
-                      "text": "Cancel",
-                      "style": "danger",
-                      "type": "button",
-                      "value": "cancel",
-                      "confirm": {
-                        "title": "Are you sure?",
-                        "ok_text": "Yes",
-                        "dismiss_text": "No"
-                      }
-                    }
-                  ]
-                }
-              ]
-            })
-          }
-          else {
-            console.log('No intent matched :( sad)')
-          }
+            }
+          ]
         })
-        .catch(err => {
-          console.error('ERROR:', err);
-        });
       }
+
+      if (result.intent.displayName === "meeting:add" && result.allRequiredParamsPresent === true){
+        web.chat.postMessage({
+          "channel": event.channel,
+          "text": "Please confirm.",
+          "attachments": [
+            {
+              // "text": `Remind you $subject on $day`,
+              "fallback": "I didn't get your meeting request. Try again.",
+              "callback_id": "meetingSetting",
+              "color": "#3AA3E3",
+              "attachment_type": "default",
+              "type": "interactive-message",
+              "actions": [
+                {
+                  "name": "confirm",
+                  "text": "Confirm",
+                  "type": "button",
+                  "value": "confirm",
+                  "style": "primary"
+                },
+                {
+                  "name": "cancel",
+                  "text": "Cancel",
+                  "style": "danger",
+                  "type": "button",
+                  "value": "cancel",
+                  "confirm": {
+                    "title": "Are you sure?",
+                    "ok_text": "Yes",
+                    "dismiss_text": "No"
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      }
+      else {
+        console.log('No intent matched :( sad)')
+      }
+
     })
-    .catch(err => console.log("error", err))
-
-
-
-  })
-
-  // Structure of `event`: <https://api.slack.com/events/message>
-  // console.log(`Message from ${event.user}: ${event.text}`);
-  // if(event.user !== "UBWEG21RD"){
-  //     .then((res) => {
-  //       // `res` contains information about the posted message
-  //       console.log('Message sent: ', res.ts);
-  //     })
-  //     .catch(console.error);
-  // }
-
-  // Log all reactions
-  rtm.on('reaction_added', (event) => {
-    // Structure of `event`: <https://api.slack.com/events/reaction_added>
-    console.log(`Reaction from ${event.user}: ${event.reaction}`);
-  });
-  rtm.on('reaction_removed', (event) => {
-    // Structure of `event`: <https://api.slack.com/events/reaction_removed>
-    console.log(`Reaction removed by ${event.user}: ${event.reaction}`);
-  });
-
-  // Send a message once the connection is ready
-  rtm.on('ready', (event) => {
-    // Getting a conversation ID is left as an exercise for the reader. It's usually available as the `channel` property
-    // on incoming messages, or in responses to Web API requests.
-
-    // const conversationId = '';
-    // rtm.sendMessage('Hello, world!', conversationId);
-  });
-
-
-
-
-  //Google stuff
-  //gives permission to access Google Calendar
-  app.get('/auth', (req, res) => {
-    if(!req.query.auth_id) {return res.send('no id found!')}
-    var link = googleAuth.generateAuthUrl(req.query.auth_id)
-    res.redirect(link)
-  })
-
-
-  //state = slackId
-
-
-  //if user is logged in with Google...
-  app.get('/oauthcallback', (req, res) => {
-    if(!req.query.code) {return res.send('no token found!')}
-    googleAuth.getToken(req.query.code)
-    .then(tokens => {
-      var temp = JSON.parse(decodeURIComponent(req.query.state))
-      var userId = temp.auth_id
-      return User.findByIdAndUpdate(userId, {googleTokens: tokens})
-    })
-    .then(updated => {
-      if(!updated) {return res.send('issue with finding user i think')}
-      res.send('you are all set with Google!!!')
-    })
-    .catch(err => console.log("error", error))
-  })
-
-
-  //when user clicks "Confirm" or "Cancel" to interactive message
-  app.get('slack/action', (req, res) => {
-    console.log('get route hit');
-    res.status(200).send('success');
-  })
-
-
-  app.post('/slack/action', (req, res) => {
-
-    console.log('post route hit');
-
-    var payload = JSON.parse(req.body.payload);
-    var slackId = String(payload.user.id)
-    var selection = payload.actions[0].value;
-    var user;
-
-    if(selection !== "confirm"){
-      User.findOneAndUpdate({slackId: slackId}, {status: null})
-      .then(() => res.send('Request has been cancelled!'))
-      .catch(err => console.log("error cancelling request", err))
-      return;
     }
-
-    User.findOne({slackId: slackId}, (err, found) => {
-      if(err) {return res.send('error finding user', err)}
-      if(!found) {return res.send('user not found merp')}
-      user = found;
-
-
-      if (user.temp.intent === "remind:add") {
-        let title = user.temp.task;
-        let date = user.temp.date;
-        let tokens = user.googleTokens;
-        googleAuth.createReminder(tokens, title, date)
-        .then( () => {
-          user.status = null;
-          user.temp.intent = null;
-          console.log('reminder successfully created!!!')
-          return user.save()
-        })
-        .then((user) => {
-          res.end()
-        })
-        .catch(err => console.log('error making reminder event and updating user', err))
-      }
-
-      if (user.temp.intent === "meeting:add") {
-        let date = user.temp.startDate;
-        let time = user.temp.startTime;
-        let startDateTime = new Date( date + 'T' + time );
-        // var endDateTime = ( endTime ? new Date( date + 'T' + endTime ) : new Date( startDateTime.getTime() + 1000*60*foundUser.defaultMeetingLength ) );
-        let attendees = user.temp.attendees;
-
-        let promises = attendees.map(attendee => {
-          return User.findOne({slackId: attendee})
-        })
-
-        Promise.all(promises)
-        .then(function(users){
-          let userTokensArr = users.map(user => {
-            return user.googleTokens
-          })
-          userTokensArr.push(user.googleTokens)
-          let schedulePromises =  userTokensArr.map(tokens => {
-            return  googleAuth.createMeeting(tokens, startDateTime)
-            .then ( () => {
-              user.status = null;
-              user.temp.intent = null;
-              console.log("meeting successfully created!!!")
-              return user.save()
-            })
-          })
-          return Promise.all(schedulePromises)
-        })
-        .then(() => res.end())
-        .catch(err => res.send({"error": err}))
-      }
+    //here
     })
-  });
+    .catch(err => {
+      console.error('ERROR:', err);
+    });
+
+
+})
+
+// Log all reactions
+rtm.on('reaction_added', (event) => {
+  // Structure of `event`: <https://api.slack.com/events/reaction_added>
+  console.log(`Reaction from ${event.user}: ${event.reaction}`);
+});
+rtm.on('reaction_removed', (event) => {
+  // Structure of `event`: <https://api.slack.com/events/reaction_removed>
+  console.log(`Reaction removed by ${event.user}: ${event.reaction}`);
+});
+
+// Send a message once the connection is ready
+rtm.on('ready', (event) => {
+  // Getting a conversation ID is left as an exercise for the reader. It's usually available as the `channel` property
+  // on incoming messages, or in responses to Web API requests.
+
+  // const conversationId = '';
+  // rtm.sendMessage('Hello, world!', conversationId);
+});
 
 
 
 
+//Google stuff
+//gives permission to access Google Calendar
+app.get('/auth', (req, res) => {
+  if(!req.query.auth_id) {return res.send('no id found!')}
+  var link = googleAuth.generateAuthUrl(req.query.auth_id)
+  res.redirect(link)
+})
 
 
-  // request handler function, sends a simple response
-  function handleRequest(req, res) {
-    res.end('Ngrok is working! - Path Hit: '+ req.url);
+//state = slackId
+
+
+//if user is logged in with Google...
+app.get('/oauthcallback', (req, res) => {
+  if(!req.query.code) {return res.send('no token found!')}
+  googleAuth.getToken(req.query.code)
+  .then(tokens => {
+    var temp = JSON.parse(decodeURIComponent(req.query.state))
+    var userId = temp.auth_id
+    return User.findByIdAndUpdate(userId, {googleTokens: tokens})
+  })
+  .then(updated => {
+    if(!updated) {return res.send('issue with finding user i think')}
+    res.send('you are all set with Google!!!')
+  })
+  .catch(err => console.log("error", error))
+})
+
+
+//when user clicks "Confirm" or "Cancel" to interactive message
+app.get('slack/action', (req, res) => {
+  console.log('get route hit');
+  res.status(200).send('success');
+})
+
+
+app.post('/slack/action', (req, res) => {
+
+  console.log('post route hit');
+
+  var payload = JSON.parse(req.body.payload);
+  var slackId = String(payload.user.id)
+  var selection = payload.actions[0].value;
+  var user;
+
+  if(selection !== "confirm"){
+    User.findOneAndUpdate({slackId: slackId}, {status: null})
+    .then(() => res.send('Request has been cancelled!'))
+    .catch(err => console.log("error cancelling request", err))
+    return;
   }
 
-  // create web server object calling createServer function
-  // const server = http.createServer(app);
-  // start the server
-  app.listen(PORT, function(){
-    // callback when server is successfully listening
-    console.log("Server listening on http://localhost:%s", PORT);
-  });
+  User.findOne({slackId: slackId}, (err, found) => {
+    if(err) {return res.send('error finding user', err)}
+    if(!found) {return res.send('user not found merp')}
+    user = found;
+
+
+    if (user.temp.intent === "remind:add") {
+      let title = user.temp.task;
+      let date = user.temp.date;
+      let tokens = user.googleTokens;
+      googleAuth.createReminder(tokens, title, date)
+      .then( () => {
+        user.status = null;
+        user.temp.intent = null;
+        console.log('reminder successfully created!!!')
+        return user.save()
+      })
+      .then((user) => {
+        res.end()
+      })
+      .catch(err => console.log('error making reminder event and updating user', err))
+    }
+
+    if (user.temp.intent === "meeting:add") {
+      let date = user.temp.startDate;
+      let time = user.temp.startTime;
+      let startDateTime = new Date( date + 'T' + time );
+      // var endDateTime = ( endTime ? new Date( date + 'T' + endTime ) : new Date( startDateTime.getTime() + 1000*60*foundUser.defaultMeetingLength ) );
+      let attendees = user.temp.attendees;
+      let promises = attendees.map(attendee => {
+        return User.findOne({slackId: attendee})
+      })
+
+      Promise.all(promises)
+      .then(function(users){
+        console.log('users is ---------->' + users)
+        let userTokensArr = users.map(user => {
+          return user.googleTokens
+        })
+        userTokensArr.push(user.googleTokens)
+        console.log("usertokensArr issssss ----------------------------______________>" + userTokensArr)
+        let schedulePromises =  userTokensArr.map(tokens => {
+          return  googleAuth.createMeeting(tokens, startDateTime)
+        })
+        console.log("schedulePromises is ---------------------------> " + schedulePromises)
+        return Promise.all(schedulePromises)
+      })
+      .then(() => res.send("yay we made a meeting!!!!!!!!!"))
+      .catch(err => res.send({"error": err}))
+    }
+  })
+});
+
+
+
+
+
+
+// request handler function, sends a simple response
+function handleRequest(req, res) {
+  res.end('Ngrok is working! - Path Hit: '+ req.url);
+}
+
+// create web server object calling createServer function
+// const server = http.createServer(app);
+// start the server
+app.listen(PORT, function(){
+  // callback when server is successfully listening
+  console.log("Server listening on http://localhost:%s", PORT);
+});

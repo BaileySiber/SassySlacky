@@ -62,7 +62,6 @@ function createReminder(tokens, title, date) {
 
 function createMeeting(tokens, startDateTime) {
   console.log('startDateTime is ----------->' + startDateTime)
-  console.log('attendees is ----------->' + attendees)
   oauth2Client.setCredentials(tokens);
   return new Promise(function(resolve, reject) {
     cal.events.insert({
