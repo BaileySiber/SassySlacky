@@ -112,7 +112,6 @@ rtm.on('message', (event) => {
           var stringifiedResult = JSON.stringify(result);
           User.findOne({slackId: slackId})
           .then(found => {
-            if(!found) {return console.log('user not found')}
             var mapInvitee = []
             result.parameters.fields.invitees.listValue.values.map(id => {
               if (id.stringValue[0] === "<") {
@@ -132,7 +131,7 @@ rtm.on('message', (event) => {
             let stringMax = maxDate.toString();
             let minReplaced = result.parameters.fields.startDate.stringValue.slice(0,8).concat(stringMin)
             let maxReplaced = result.parameters.fields.startDate.stringValue.slice(0,8).concat(stringMax)
-            let startDateTime = startDate + 'T' + startTime + "z";
+            let startDateTime = startDate + 'T' + startTime + "-07:00";
             let minDateTime = new Date( minReplaced + 'T' + startTime );
             let maxDateTime = new Date( maxReplaced + "T" + startTime );
             console.log("START Date TIME *********************> " + startDateTime)
@@ -149,24 +148,14 @@ rtm.on('message', (event) => {
             // take user selection and reset the startDateTime to selection
             // proceed!!
             //here??
-            // app.post("https://www.googleapis.com/calendar/v3/freeBusy", (req,res) => {
-            //   console.log("getting the freebusy status!")
-            //   User.findOne({slackId: slackId})
-            //   .then(user => {
-            //     let tokens = user.googleTokens;
+
+            // User.findOne({slackId: slackId})//done already above..?
+            // .then(found => {
+                let tokens = found.googleTokens
+                // console.log("GOOGLETOKEN(.)(.)(.)(.)(.)(.)(.)(.)" +tokens)
+                googleAuth.checkConflict(tokens, slackId)
             //   })
-            //   .catch(err => console.log('error:', err))
-            //
-            //   {
-            //       "timeMin": minDateTime,
-            //       "timeMax": maxDateTime,
-            //       "items": [
-            //                   {
-            //                     "id": string
-            //                   }
-            //               ]
-            //   }
-            // })
+            // .catch((err) => console.log(err))
 
             found.temp = {
               startDateTime: startDateTime,
@@ -381,6 +370,7 @@ app.post('/slack/action', (req, res) => {
     if (user.temp.intent === "meeting:add") {
       // startDateTime defined in line 135 and added to temp in line 149
       // var endDateTime = ( endTime ? new Date( date + 'T' + endTime ) : new Date( startDateTime.getTime() + 1000*60*foundUser.defaultMeetingLength ) );
+      let startDateTime = user.temp.startDateTime;
       let attendees = user.temp.attendees;
       let promises = attendees.map(attendee => {
         return User.findOne({slackId: attendee})

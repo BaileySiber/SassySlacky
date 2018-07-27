@@ -20,6 +20,8 @@ const scopes = [
   'https://www.googleapis.com/auth/calendar'
 ];
 
+
+
 function generateAuthUrl(auth_id) {
   var authObj = {
     access_type: 'offline',
@@ -79,8 +81,28 @@ function createMeeting(tokens, startDateTime) {
   });
 }
 
+function checkConflict(tokens, slackId) {
+  console.log("getting the freebusy status!")
+    oauth2Client.setCredentials(tokens);
+    fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body:{
+              "auth": auth,
+              "timeMin": minDateTime,
+              "timeMax": maxDateTime,
+              "items": [{"id": 'primary'}]
+          }
+    })
+    .then((resp) => (resp.json()))
+    .then((jsonFreeBusyResp) => {return jsonFreeBusyResp})
+    .catch((err) => console.log('Error getting freeBusy response from google', err))
+}
 
 module.exports=({
+  checkConflict,
   generateAuthUrl,
   getToken,
   createReminder,
