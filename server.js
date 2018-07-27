@@ -47,7 +47,6 @@ const sessionPath = sessionClient.sessionPath(projectId, sessionId);
 rtm.on('message', (event) => {
   console.log(event)
   if (event.bot_id || event.subtype || event.user === 'UBWEG21RD') {
-    console.log('returning out yikes!')
     return
   }
 
@@ -90,9 +89,6 @@ rtm.on('message', (event) => {
       .then(responses => {
         //rtm.sendMessage('Detected intent', event.channel);
         const result = responses[0].queryResult;
-
-        console.log("result.intent.displayName is ->>>>>>>>>>>>>>>>>" + result.intent.displayName)
-
         if (result.intent.displayName === "remind:add") {
           User.findOne({slackId: slackId})
           .then(found => {
@@ -114,7 +110,6 @@ rtm.on('message', (event) => {
 
         if (result.intent.displayName === "meeting:add") {
           var stringifiedResult = JSON.stringify(result);
-          console.log("GIMME THE RESULT ---------->"+stringifiedResult);
           User.findOne({slackId: slackId})
           .then(found => {
             if(!found) {return console.log('user not found')}
@@ -127,22 +122,23 @@ rtm.on('message', (event) => {
                 mapInvitee.push(id)
               }
             })
-            console.log("mapInvitee is ----------------------------->" + mapInvitee)
 
             // check for time conflicts
             let startDate = result.parameters.fields.startDate.stringValue.slice(0,10);
             let startTime = result.parameters.fields.startTime.stringValue.slice(11,19);
-            let minDate = parseInt(startDate.slice(8,10)) - 1;
-            let maxDate = parseInt(startDate.slice(8,10)) + 1;
-            let stringMin = toString(minDate);
-            let stringMax = toString(maxDate);
-            let minReplaced = result.parameters.fields.startDate.stringValue.slice(0,8).concat(toString(minDate))
-            let maxReplaced = result.parameters.fields.startDate.stringValue.slice(0,8).concat(toString(maxDate))
-            let startDateTime = new Date( startDate + 'T' + startTime );
+            let minDate = parseInt(startDate.slice(8,10)) - 3;
+            let maxDate = parseInt(startDate.slice(8,10)) + 3;
+            let stringMin = minDate.toString();
+            let stringMax = maxDate.toString();
+            let minReplaced = result.parameters.fields.startDate.stringValue.slice(0,8).concat(stringMin)
+            let maxReplaced = result.parameters.fields.startDate.stringValue.slice(0,8).concat(stringMax)
+            let startDateTime = startDate + 'T' + startTime + "z";
             let minDateTime = new Date( minReplaced + 'T' + startTime );
-            let maxDateTime = new Date( maxReplaced + "T" + startTime);
-            console.log("CHANGEDATE --------------> " + stringMin)
-            console.log("CHANGEDATE --------------> " + stringMax)
+            let maxDateTime = new Date( maxReplaced + "T" + startTime );
+            console.log("START Date TIME *********************> " + startDateTime)
+            console.log("MIN Date TIME --------------> " + minDateTime)
+            console.log("MAX Date TIME --------------> " + maxDateTime)
+
             // let minDateTime =
             // let maxDateTime =
             // access all attendees calendars separately using their tokens and calendarId: 'primary',
@@ -153,18 +149,24 @@ rtm.on('message', (event) => {
             // take user selection and reset the startDateTime to selection
             // proceed!!
             //here??
-            app.post("https://www.googleapis.com/calendar/v3/freeBusy", (req,res) => {
-              console.log("getting the freebusy status!")
-              // {
-              //     "timeMin": startDateTime - a few days,
-              //     "timeMax": startdatetime + a few days,
-              //     "items": [
-              //                 {
-              //                   "id": string
-              //                 }
-              //             ]
-              // }
-            })
+            // app.post("https://www.googleapis.com/calendar/v3/freeBusy", (req,res) => {
+            //   console.log("getting the freebusy status!")
+            //   User.findOne({slackId: slackId})
+            //   .then(user => {
+            //     let tokens = user.googleTokens;
+            //   })
+            //   .catch(err => console.log('error:', err))
+            //
+            //   {
+            //       "timeMin": minDateTime,
+            //       "timeMax": maxDateTime,
+            //       "items": [
+            //                   {
+            //                     "id": string
+            //                   }
+            //               ]
+            //   }
+            // })
 
             found.temp = {
               startDateTime: startDateTime,
