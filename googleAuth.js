@@ -81,22 +81,23 @@ function createMeeting(tokens, startDateTime) {
   });
 }
 
-function checkConflict(tokens, slackId, minDateTime, maxDateTime) {
+function checkConflict(tokens, slackId, startDateTime, endDateTime) {
   console.log("getting the freebusy status! slackId is -------------" + slackId)
     oauth2Client.setCredentials(tokens);
-    axios("https://www.googleapis.com/calendar/v3/freeBusy", {
+    return axios("https://www.googleapis.com/calendar/v3/freeBusy", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": tokens.token_type + " " + tokens.access_token
       },
       body:{
-              "timeMin": minDateTime,
-              "timeMax": maxDateTime,
-              "items": [{"id": slackId}]
+              "timeMin": startDateTime,
+              "timeMax": endDateTime,
+              "items": [{"id": "primary"}]
           }
     })
-    .then((jsonFreeBusyResp) => {return jsonFreeBusyResp})
-    .catch((err) => console.log('Error getting freeBusy response from google', err))
+    // .then((jsonFreeBusyResp) => {return jsonFreeBusyResp})
+    // .catch((err) => console.log('Error getting freeBusy response from google', err.data))
 }
 
 module.exports=({
