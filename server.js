@@ -72,7 +72,6 @@ rtm.on('message', (event) => {
       })
     }
     else {
-      console.log('user can give make requests yay!')
       const request = {
         session: sessionPath,
         queryInput: {
@@ -134,9 +133,6 @@ rtm.on('message', (event) => {
             let startDateTime = startDate + 'T' + startTime + "-07:00";
             let minDateTime = new Date( minReplaced + 'T' + startTime );
             let maxDateTime = new Date( maxReplaced + "T" + startTime );
-            console.log("START Date TIME *********************> " + startDateTime)
-            console.log("MIN Date TIME --------------> " + minDateTime)
-            console.log("MAX Date TIME --------------> " + maxDateTime)
 
             // let minDateTime =
             // let maxDateTime =
@@ -151,29 +147,42 @@ rtm.on('message', (event) => {
 
             // User.findOne({slackId: slackId})//done already above..?
             // .then(found => {
-                let tokens = found.googleTokens
-                // console.log("GOOGLETOKEN(.)(.)(.)(.)(.)(.)(.)(.)" +tokens)
-                googleAuth.checkConflict(tokens, slackId)
-            //   })
-            // .catch((err) => console.log(err))
 
-            found.temp = {
-              startDateTime: startDateTime,
-              attendees: mapInvitee,
-              intent: 'meeting:add'
-            }
-            return found.save()
-          })
-          .then(() => {
-            console.log("yay found was updated with temp!!! wooooo!!!")
-            //meeting
-          })
-          .catch(err => console.log("error!!!!" + err))
-        }
 
-        rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
+            let promises = mapInvitee.map(invitee => {
+              return User.findOne({slackId: invitee})
+            })
 
-        //remind and meeting
+            Promise.all(promises)
+            .then(function(users){
+              let usersArr = users;
+              usersArr.push(found)
+              let conflictPromises =  usersArr.map(user => {
+                console.log('user slack id is ______________________' + user.slackId)
+                return  googleAuth.checkConflict(user.googleTokens, user.slackId, minDateTime, maxDateTime)
+              })
+              return Promise.all(conflictPromises)
+            })
+            .then(() => console.log("yay we made a meeting!!!!!!!!!"))
+            .catch(err => console.log("error in conflicts" + err))
+
+          found.temp = {
+            startDateTime: startDateTime,
+            attendees: mapInvitee,
+            intent: 'meeting:add'
+          }
+          return found.save()
+        })
+        .then(() => {
+          console.log("yay found was updated with temp!!! wooooo!!!")
+          //meeting
+        })
+        .catch(err => console.log("error!!!!" + err))
+      }
+
+      rtm.sendMessage(`${result.fulfillmentText}`, event.channel);
+
+      //remind and meeting
 
 
 
@@ -257,16 +266,16 @@ rtm.on('message', (event) => {
         })
       }
       else {
-        console.log('No intent matched :( sad)')
+        console.log('No intent matched')
       }
 
     })
-    }
-    //here
-    })
-    .catch(err => {
-      console.error('ERROR:', err);
-    });
+  }
+  //here
+})
+.catch(err => {
+  console.error('ERROR:', err);
+});
 
 
 })
@@ -324,13 +333,10 @@ app.get('/oauthcallback', (req, res) => {
 
 //when user clicks "Confirm" or "Cancel" to interactive message
 app.get('slack/action', (req, res) => {
-  console.log('get route hit');
   res.status(200).send('success');
 })
 
 app.post('/slack/action', (req, res) => {
-
-  console.log('post route hit');
 
   var payload = JSON.parse(req.body.payload);
   var slackId = String(payload.user.id)
@@ -378,16 +384,13 @@ app.post('/slack/action', (req, res) => {
 
       Promise.all(promises)
       .then(function(users){
-        // console.log('users is ---------->' + users)
         let userTokensArr = users.map(user => {
           return user.googleTokens
         })
         userTokensArr.push(user.googleTokens)
-        // console.log("usertokensArr issssss ----------------------------______________>" + userTokensArr)
         let schedulePromises =  userTokensArr.map(tokens => {
           return  googleAuth.createMeeting(tokens, startDateTime)
         })
-        // console.log("schedulePromises is ---------------------------> " + schedulePromises)
         return Promise.all(schedulePromises)
       })
       .then(() => res.send("yay we made a meeting!!!!!!!!!"))

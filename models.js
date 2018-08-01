@@ -35,8 +35,6 @@ var UserSchema = Schema({
     default: 30,
   },
   slackId: String,
-  slackUsername: String,
-  slackEmail: String,
   slackDmIds: Array,
   status: {
     type: Mixed,

@@ -1,6 +1,7 @@
 const {google} = require('googleapis');
 var OAuth2 = google.auth.OAuth2
 var cal = google.calendar('v3');
+var axios = require('axios');
 
 
 const clientId = process.env.GOOGLE_CLIENT_ID || '';
@@ -63,7 +64,6 @@ function createReminder(tokens, title, date) {
 }
 
 function createMeeting(tokens, startDateTime) {
-  console.log('startDateTime is ----------->' + startDateTime)
   oauth2Client.setCredentials(tokens);
   return new Promise(function(resolve, reject) {
     cal.events.insert({
@@ -81,22 +81,20 @@ function createMeeting(tokens, startDateTime) {
   });
 }
 
-function checkConflict(tokens, slackId) {
-  console.log("getting the freebusy status!")
+function checkConflict(tokens, slackId, minDateTime, maxDateTime) {
+  console.log("getting the freebusy status! slackId is -------------" + slackId)
     oauth2Client.setCredentials(tokens);
-    fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+    axios("https://www.googleapis.com/calendar/v3/freeBusy", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body:{
-              "auth": auth,
               "timeMin": minDateTime,
               "timeMax": maxDateTime,
-              "items": [{"id": 'primary'}]
+              "items": [{"id": slackId}]
           }
     })
-    .then((resp) => (resp.json()))
     .then((jsonFreeBusyResp) => {return jsonFreeBusyResp})
     .catch((err) => console.log('Error getting freeBusy response from google', err))
 }

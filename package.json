@@ -28,6 +28,7 @@
   "dependencies": {
     "@slack/client": "^4.3.1",
     "@slack/interactive-messages": "^0.4.0",
+    "axios": "^0.18.0",
     "body-parser": "^1.18.3",
     "create-babelrc": "^0.1.0",
     "dialogflow": "^0.6.0",
