@@ -82,29 +82,46 @@ function createMeeting(tokens, startDateTime) {
   });
 }
 
+
 function checkConflict(tokens, slackId, startDateTime, endDateTime) {
   console.log("getting the freebusy status! slackId is -------------" + slackId)
-    oauth2Client.setCredentials(tokens);
-    return axios("https://www.googleapis.com/calendar/v3/freeBusy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": tokens.token_type + " " + tokens.access_token
-      },
-      body:{
-              "timeMin": startDateTime,
-              "timeMax": endDateTime,
-              "items": [{"id": "primary"}]
-          }
+  console.log("time min is ---------------------------------" + startDateTime)
+  console.log("time max is ---------------------------------" + endDateTime)
+  oauth2Client.setCredentials(tokens);
+  return new Promise(function(resolve, reject){
+    cal.freebusy.query({
+      auth: oauth2Client,
+      resource: {
+        items: [{id: "primary"}],
+        timeMax: endDateTime,
+        timeMin: startDateTime,
+      }}, function(calErr, calResp) {
+        if(calErr) {reject(calErr); return}
+        resolve(calResp)
+      })
     })
-    // .then((jsonFreeBusyResp) => {return jsonFreeBusyResp})
-    // .catch((err) => console.log('Error getting freeBusy response from google', err.data))
-}
 
-module.exports=({
-  checkConflict,
-  generateAuthUrl,
-  getToken,
-  createReminder,
-  createMeeting
-})
+  }
+  //     return axios("https://www.googleapis.com/calendar/v3/freeBusy", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         "Authorization": tokens.token_type + " " + tokens.access_token
+  //       },
+  //       body:{
+  //               "timeMin": startDateTime,
+  //               "timeMax": endDateTime,
+  //               "items": [{"id": "primary"}]
+  //           }
+  //     })
+  //     // .then((jsonFreeBusyResp) => {return jsonFreeBusyResp})
+  //     // .catch((err) => console.log('Error getting freeBusy response from google', err.data))
+  // }
+
+  module.exports=({
+    checkConflict,
+    generateAuthUrl,
+    getToken,
+    createReminder,
+    createMeeting
+  })
