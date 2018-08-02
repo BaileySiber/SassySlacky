@@ -1,5 +1,5 @@
 # SassySlacky
-Created a Slack scheduler bot named Sassy Slacky using Google Calendar, Slack, and DialogueFlow APIs
+SassySlacky is a Slack scheduler bot that was created using Google Calendar, Slack, and DialogueFlow APIs
 
 Features:
 1. Ask Sassy to create a reminder, the reminder will be added to your Google Calendar as an all day event
