@@ -5,6 +5,8 @@ const express = require('express');
 const { User, Reminder, Meeting, Invite } = require('./models.js')
 const googleAuth = require("./googleAuth");
 const bodyParser = require('body-parser');
+// const JSON = require('circular-json');
+
 
 const app = express();
 app.use(bodyParser.urlencoded({extended: false}))
@@ -364,7 +366,12 @@ app.post('/slack/action', (req, res) => {
         return Promise.all(conflictPromises)
       })
       .then((conflicts) => {
-        console.log('conflicts are -----------------------' + conflicts)
+        console.log(conflicts[0].data)
+        for(var i = 0; i < conflicts.length; i++){
+          if(conflicts[i].data.calendars.primary.busy.length > 0){
+            return res.send("Uh oh! There is a conflict, try again!")
+          }
+        }
         let promisesTwo = attendees.map(attendee => {
           return User.findOne({slackId: attendee})
         })
@@ -385,6 +392,7 @@ app.post('/slack/action', (req, res) => {
     }
   })
 })
+
 
 
 
