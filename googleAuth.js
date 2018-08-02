@@ -18,7 +18,8 @@ const oauth2Client = new OAuth2(
 
 const scopes = [
   'https://www.googleapis.com/auth/plus.me',
-  'https://www.googleapis.com/auth/calendar'
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/calendar.readonly'
 ];
 
 
