@@ -1,6 +1,7 @@
-# SassySlacky
-SassySlacky is a Slack scheduler monster bot that was created using Google Calendar, Slack, and DialogueFlow APIs
+# Sassy
+Sassy is a Slack scheduler monster bot that was created using Google Calendar, Slack, and DialogueFlow APIs.
 
+A demo video can be found here:
 https://www.youtube.com/watch?v=acwEWRaiVmE
 
 Features:
